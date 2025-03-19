@@ -1,0 +1,2453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ED Construction Mats Plotter</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+  <!-- React and ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Configuration for the API URL - Edit this to change the API endpoint -->
+  <script>
+    window.EDConfig = {
+      apiBaseUrl: 'http://localhost:8080', // Change this to your API server URL
+      apiTimeoutMs: 30000 // API request timeout in milliseconds
+    };
+  </script>
+
+  <style>
+    /* Custom styles for ED theme */
+    :root {
+      --ed-orange: #ff8c00;
+      --ed-orange-light: #ffa333;
+      --ed-orange-dark: #c06400;
+      --ed-gray: #1e1e1e;
+      --ed-gray-light: #2a2a2a;
+      --ed-gray-dark: #141414;
+      --ed-text: #e0e0e0;
+    }
+
+    body {
+      background-color: var(--ed-gray);
+      color: var(--ed-text);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23232323' fill-opacity='0.4'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3Cpath d='M6 5V0H5v5H0v1h5v94h1V6h94V5H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    .ed-card {
+      background-color: var(--ed-gray-dark);
+      border: 1px solid var(--ed-gray-light);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .ed-button {
+      transition: all 0.2s ease;
+    }
+
+    .ed-button:hover {
+      transform: translateY(-1px);
+    }
+
+    .ed-input {
+      background-color: var(--ed-gray);
+      color: var(--ed-text);
+      border: 1px solid var(--ed-gray-light);
+    }
+
+    .ed-input:focus {
+      border-color: var(--ed-orange);
+      outline: none;
+    }
+
+    .autocomplete-results {
+      background-color: var(--ed-gray);
+      border: 1px solid var(--ed-gray-light);
+      position: absolute;
+      width: 100%;
+      z-index: 10;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .autocomplete-result:hover {
+      background-color: var(--ed-gray-light);
+    }
+
+    .commodity-card {
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .commodity-card:hover {
+      border-color: var(--ed-orange);
+    }
+
+    .commodity-collected {
+      opacity: 0.6;
+    }
+
+    .commodity-collected::after {
+      content: '✓';
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      color: var(--ed-orange);
+    }
+
+    .route-completed {
+      border-left: 4px solid var(--ed-orange);
+    }
+
+    .ed-tooltip {
+      position: relative;
+    }
+
+    .tooltip-text {
+      visibility: hidden;
+      position: absolute;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--ed-gray-dark);
+      color: var(--ed-text);
+      text-align: center;
+      padding: 5px 10px;
+      border-radius: 4px;
+      z-index: 10;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .ed-tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    [v-cloak] {
+      display: none;
+    }
+
+    @keyframes confetti-fall {
+      0% { transform: translateY(0) rotate(0deg); }
+      100% { transform: translateY(100vh) rotate(720deg); }
+    }
+  </style>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'ed-orange': '#ff8c00',
+            'ed-orange-light': '#ffa333',
+            'ed-orange-dark': '#c06400',
+            'ed-gray': '#1e1e1e',
+            'ed-gray-light': '#2a2a2a',
+            'ed-gray-dark': '#141414',
+            'ed-text': '#e0e0e0'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Root element for React app -->
+  <div id="root"></div>
+
+  <!-- React code begins here -->
+  <script type="text/babel" data-type="module">
+    const { useState, useEffect, useRef, createContext, useContext } = React;
+
+    // Get API configuration from the global config
+    const API_BASE_URL = window.EDConfig?.apiBaseUrl || 'http://localhost:5000';
+    const API_TIMEOUT_MS = window.EDConfig?.apiTimeoutMs || 30000;
+
+    console.log(`Using API base URL: ${API_BASE_URL}`);
+
+    // Utility function for API calls with timeout
+    const fetchWithTimeout = async (url, options = {}) => {
+      const controller = new AbortController();
+      const { signal } = controller;
+
+      const timeout = setTimeout(() => {
+        controller.abort();
+      }, API_TIMEOUT_MS);
+
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal
+        });
+        clearTimeout(timeout);
+        return response;
+      } catch (error) {
+        clearTimeout(timeout);
+        if (error.name === 'AbortError') {
+          throw new Error(`Request timed out after ${API_TIMEOUT_MS}ms`);
+        }
+        throw error;
+      }
+    };
+
+    // App Context (if you need it globally)
+    const AppContext = createContext(null);
+
+    // Available commodities in Elite Dangerous (example list)
+    const COMMODITIES = [
+  "Hydrogen Fuel",
+  "Biowaste",
+  "Cobalt",
+  "Silver",
+  "Gold",
+  "Military Grade Fabrics",
+  "Surface Stabilisers",
+  "Scrap",
+  "Tritium",
+  "Basic Medicines",
+  "Palladium",
+  "Food Cartridges",
+  "Crop Harvesters",
+  "Geological Equipment",
+  "Marine Equipment",
+  "HN Shock Mount",
+  "Building Fabricators",
+  "Atmospheric Processors",
+  "Titanium",
+  "Aluminium",
+  "Copper",
+  "Indium",
+  "Survival Equipment",
+  "Thermal Cooling Units",
+  "Computer Components",
+  "Skimmer Components",
+  "Superconductors",
+  "Polymers",
+  "Synthetic Fabrics",
+  "Semiconductors",
+  "Liquid oxygen",
+  "Gallite",
+  "Uraninite",
+  "Lepidolite",
+  "Bertrandite",
+  "Water Purifiers",
+  "Gallium",
+  "Tantalum",
+  "Lithium",
+  "Beryllium",
+  "Rutile",
+  "Conductive Fabrics",
+  "Uranium",
+  "Bauxite",
+  "Insulating Membrane",
+  "Mineral Extractors",
+  "Indite",
+  "Coltan",
+  "Power Generators",
+  "Explosives",
+  "Domestic Appliances",
+  "Clothing",
+  "Liquor",
+  "Personal Weapons",
+  "Imperial Slaves",
+  "Steel",
+  "Battle Weapons",
+  "Water",
+  "Grain",
+  "Fruit and Vegetables",
+  "Algae",
+  "Mineral Oil",
+  "Beer",
+  "Non-Lethal Weapons",
+  "Wine",
+  "Tea",
+  "Coffee",
+  "Fish",
+  "Leather",
+  "Animal Meat",
+  "Natural Fabrics",
+  "Reactive Armour",
+  "Synthetic Meat",
+  "Pesticides",
+  "Animal Monitors",
+  "Aquaponic Systems",
+  "Agri-Medicines",
+  "Land Enrichment Systems",
+  "Auto-Fabricators",
+  "Bioreducing Lichen",
+  "Robotics",
+  "Agronomic Treatment",
+  "Medical Diagnostic Equipment",
+  "Micro Controllers",
+  "Structural Regulators",
+  "Evacuation Shelter",
+  "Onionhead Gamma Strain",
+  "Progenitor Cells",
+  "Performance Enhancers",
+  "Consumer Technology",
+  "Haematite",
+  "Tobacco",
+  "Microbial Furnaces",
+  "Resonating Separators",
+  "Advanced Catalysers",
+  "Advanced Medicines",
+  "H.E. Suits",
+  "Narcotics",
+  "Goslarite",
+  "Cryolite",
+  "Pyrophyllite",
+  "Combat Stabilisers",
+  "Landmines",
+  "Muon Imager",
+  "Ceramic Composites",
+  "Slaves",
+  "Nerve Agents",
+  "Bismuth",
+  "Thallium",
+  "Power Converter",
+  "Ion Distributor",
+  "Reinforced Mounting Plate",
+  "Exhaust Manifold",
+  "Lanthanum",
+  "Thorium",
+  "Emergency Power Cells",
+  "Heatsink Interlink",
+  "Neofabric Insulation",
+  "Energy Grid Assembly",
+  "Magnetic Emitter Coil",
+  "Power Transfer Bus",
+  "Synthetic Reagents",
+  "Radiation Baffle",
+  "CMM Composite",
+  "Hardware Diagnostic Sensor"
+];
+
+
+    // Common commodities for quick add
+    const COMMON_COMMODITIES = [
+      "CMM Composite", 
+      "Computer Components", 
+      "Steel", 
+      "Copper", 
+      "Aluminium", 
+      "Titanium",
+      "Surface Stabilisers",
+      "Structural Regulators",
+      "Survival Equipment"
+
+    ];
+
+    // Notification Component (fixed)
+    const Notification = ({ notification, onClose }) => {
+      if (!notification || !notification.visible) return null;
+
+      const bgColors = {
+        success: 'bg-green-700',
+        error: 'bg-red-700',
+        warning: 'bg-yellow-700',
+        info: 'bg-blue-700'
+      };
+
+      const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+      };
+
+      return (
+        <div 
+          className={`fixed top-4 right-4 z-50 max-w-sm shadow-lg transition-all duration-300 transform ${bgColors[notification.type]}`}
+        >
+          <div className="flex p-4 rounded-lg">
+            <div className="flex-shrink-0 text-white mr-3">
+              <i className={`fas ${icons[notification.type]}`}></i>
+            </div>
+            <div className="text-white">{notification.message}</div>
+            <button 
+              onClick={onClose}
+              className="ml-auto text-white hover:text-gray-300 focus:outline-none"
+            >
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    // Settings Modal Component
+    const SettingsModal = ({ isOpen, onClose, settings, onSave, onClearData }) => {
+      const [debug, setDebug] = useState(settings.debug || false);
+
+      if (!isOpen) return null;
+
+      const handleSave = () => {
+        onSave({ debug });
+      };
+
+      return (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-80">
+          <div className="bg-ed-gray-dark p-6 rounded-lg shadow-lg max-w-md w-full border border-ed-orange-dark">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-ed-orange">Settings</h2>
+              <button onClick={onClose} className="text-ed-text hover:text-ed-orange">
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="mb-4">
+              <label className="block mb-1 text-sm">Display Preferences:</label>
+              <div className="flex items-center mt-2">
+                <input 
+                  type="checkbox" 
+                  id="showDebug" 
+                  checked={debug}
+                  onChange={(e) => setDebug(e.target.checked)}
+                  className="mr-2" 
+                />
+                <label htmlFor="showDebug" className="text-sm">Show Debug Information</label>
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="block mb-1 text-sm">Storage:</label>
+              <button 
+                onClick={onClearData}
+                className="ed-button bg-red-800 hover:bg-red-700 text-white px-4 py-2 rounded mt-2"
+              >
+                Clear All Saved Data
+              </button>
+            </div>
+            <div className="flex justify-end mt-4">
+              <button 
+                onClick={handleSave}
+                className="ed-button bg-ed-orange hover:bg-ed-orange-light text-black font-bold px-6 py-2 rounded"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Save List Modal Component
+    const SaveListModal = ({ isOpen, onClose, onSave, defaultName = '' }) => {
+      const [listName, setListName] = useState(defaultName);
+
+      if (!isOpen) return null;
+
+      const handleSave = () => {
+        if (listName.trim()) {
+          onSave(listName.trim());
+        }
+      };
+
+      return (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-80">
+          <div className="bg-ed-gray-dark p-6 rounded-lg shadow-lg max-w-md w-full border border-ed-orange-dark">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-ed-orange">Save Commodity List</h2>
+              <button onClick={onClose} className="text-ed-text hover:text-ed-orange">
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="mb-4">
+              <label htmlFor="listName" className="block mb-1 text-sm">List Name:</label>
+              <input 
+                type="text" 
+                id="listName" 
+                value={listName}
+                onChange={(e) => setListName(e.target.value)}
+                className="ed-input w-full bg-ed-gray text-ed-text rounded p-2"
+                placeholder="Enter a name for this list"
+              />
+            </div>
+            <div className="flex justify-end mt-4">
+              <button 
+                onClick={onClose}
+                className="ed-button bg-ed-gray hover:bg-ed-gray-light text-white font-medium px-4 py-2 rounded mr-2"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSave}
+                className="ed-button bg-ed-orange hover:bg-ed-orange-light text-black font-bold px-6 py-2 rounded"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // System Search Component
+    const SystemSearch = ({ onSelectSystem, initialSystem = null }) => {
+      const [searchInput, setSearchInput] = useState('');
+      const [suggestions, setSuggestions] = useState([]);
+      const [showSuggestions, setShowSuggestions] = useState(false);
+      const [selectedSystem, setSelectedSystem] = useState(initialSystem);
+      const [searchError, setSearchError] = useState(null);
+
+      const searchTimerRef = useRef(null);
+
+      useEffect(() => {
+        return () => {
+          if (searchTimerRef.current) {
+            clearTimeout(searchTimerRef.current);
+          }
+        };
+      }, []);
+
+      const searchSystems = (query) => {
+        if (searchTimerRef.current) {
+          clearTimeout(searchTimerRef.current);
+        }
+
+        if (query.length < 2) {
+          setSuggestions([]);
+          setShowSuggestions(false);
+          return;
+        }
+
+        searchTimerRef.current = setTimeout(() => {
+          // Example/placeholder fetch – replace with your real endpoint
+          fetchWithTimeout(`${API_BASE_URL}/api/systems/search?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+              setSuggestions(data);
+              setShowSuggestions(data.length > 0);
+            })
+            .catch(err => {
+              console.error("Error searching systems:", err);
+              setSearchError(err.message);
+              setSuggestions([]);
+              setShowSuggestions(false);
+            });
+        }, 300);
+      };
+
+      const handleInputChange = (e) => {
+        const value = e.target.value;
+        setSearchInput(value);
+        searchSystems(value);
+      };
+
+      const handleSelectSystem = (system) => {
+        setSelectedSystem(system);
+        setSearchInput(system.name);
+        setShowSuggestions(false);
+        if (onSelectSystem) {
+          onSelectSystem(system);
+        }
+      };
+
+      const hideSuggestionsDelayed = () => {
+        setTimeout(() => {
+          setShowSuggestions(false);
+        }, 200);
+      };
+
+      return (
+        <div className="mb-4">
+          <label htmlFor="homeSystem" className="block mb-2 font-medium">Home/Source System:</label>
+          <div className="relative">
+            <input
+              type="text"
+              id="homeSystem"
+              value={searchInput}
+              onChange={handleInputChange}
+              onFocus={() => {
+                if (searchInput.length >= 2 && suggestions.length > 0) {
+                  setShowSuggestions(true);
+                }
+              }}
+              onBlur={hideSuggestionsDelayed}
+              placeholder="Type system name (e.g. Sol)"
+              className="ed-input w-full rounded px-3 py-2 focus:outline-none"
+            />
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="autocomplete-results rounded-b-md">
+                {suggestions.map((system, index) => (
+                  <div
+                    key={index}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleSelectSystem(system);
+                    }}
+                    className="autocomplete-result p-2 cursor-pointer border-b border-ed-gray last:border-b-0"
+                  >
+                    <div className="font-medium">{system.name}</div>
+                    {system.coords && (
+                      <div className="text-xs text-gray-400">
+                        {system.coords.x.toFixed(2)},
+                        {system.coords.y.toFixed(2)},
+                        {system.coords.z.toFixed(2)}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {searchError && (
+              <div className="text-red-500 text-xs mt-1">Error: {searchError}</div>
+            )}
+          </div>
+          {selectedSystem && (
+            <div className="mt-2 flex items-center">
+              <i className="fas fa-check-circle text-ed-orange mr-2"></i>
+              <span className="text-ed-orange text-sm">
+                System selected: {selectedSystem.name}
+              </span>
+            </div>
+          )}
+          {!selectedSystem && (
+            <p className="text-sm text-gray-400 mt-1">Default: Sol</p>
+          )}
+        </div>
+      );
+    };
+
+    // Commodity Builder Component
+    const CommodityBuilder = ({ entries, onAddCommodity, onRemoveCommodity, onUpdateQuantity, onClearAll, onSaveList, onSortList }) => {
+      const [commoditySearch, setCommoditySearch] = useState('');
+      const [quantity, setQuantity] = useState(1);
+      const [suggestions, setSuggestions] = useState([]);
+      const [showSuggestions, setShowSuggestions] = useState(false);
+
+      const isValidCommodity = commoditySearch && COMMODITIES.includes(commoditySearch) && quantity > 0;
+
+      const filterCommodities = (search) => {
+        if (search.length < 2) {
+          return [];
+        }
+        const searchLower = search.toLowerCase();
+        return COMMODITIES.filter(commodity => 
+          commodity.toLowerCase().includes(searchLower)
+        );
+      };
+
+      const handleSearchChange = (e) => {
+        const value = e.target.value;
+        setCommoditySearch(value);
+        const filtered = filterCommodities(value);
+        setSuggestions(filtered);
+        setShowSuggestions(value.length >= 2 && filtered.length > 0);
+      };
+
+      const selectCommodity = (commodity) => {
+        setCommoditySearch(commodity);
+        setShowSuggestions(false);
+      };
+
+      const hideSuggestionsDelayed = () => {
+        setTimeout(() => {
+          setShowSuggestions(false);
+        }, 200);
+      };
+
+      const incrementQuantity = () => {
+        setQuantity(prev => prev + 1);
+      };
+
+      const decrementQuantity = () => {
+        setQuantity(prev => (prev > 1 ? prev - 1 : 1));
+      };
+
+      const addCommodityClick = () => {
+        if (!isValidCommodity) return;
+        onAddCommodity({
+          commodity: commoditySearch,
+          quantity: quantity
+        });
+        setCommoditySearch('');
+        setQuantity(1);
+        setSuggestions([]);
+      };
+
+      const quickAddCommodity = (commodity) => {
+        onAddCommodity({ commodity, quantity: 1 });
+      };
+
+      const totalCommodityQuantity = entries.reduce((total, entry) => total + entry.quantity, 0);
+
+      return (
+        <div className="mb-4 bg-ed-gray p-4 rounded-lg">
+          <h3 className="text-ed-orange font-semibold mb-3">Commodity Builder</h3>
+
+          {/* Add Commodity Form */}
+          <div className="flex flex-col space-y-2 mb-4">
+            <div className="flex flex-col md:flex-row md:space-x-3 space-y-2 md:space-y-0">
+              {/* Commodity Selection with Autocomplete */}
+              <div className="flex-grow relative">
+                <label htmlFor="commoditySelect" className="text-xs text-gray-400 mb-1 block">Commodity:</label>
+                <input
+                  type="text"
+                  id="commoditySelect"
+                  value={commoditySearch}
+                  onChange={handleSearchChange}
+                  onFocus={() => {
+                    if (commoditySearch.length >= 2 && suggestions.length > 0) {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                  onBlur={hideSuggestionsDelayed}
+                  placeholder="Type to search commodities"
+                  className="ed-input w-full rounded px-3 py-2 focus:outline-none"
+                />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="autocomplete-results rounded-b-md max-h-60 overflow-y-auto">
+                    {suggestions.map((commodity, index) => (
+                      <div
+                        key={index}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          selectCommodity(commodity);
+                        }}
+                        className="autocomplete-result p-2 cursor-pointer border-b border-ed-gray last:border-b-0"
+                      >
+                        <div className="font-medium">{commodity}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Quantity Input */}
+              <div className="md:w-1/4">
+                <label htmlFor="quantityInput" className="text-xs text-gray-400 mb-1 block">Quantity:</label>
+                <div className="flex">
+                  <button
+                    onClick={decrementQuantity}
+                    type="button"
+                    className="bg-ed-gray-dark px-3 py-2 rounded-l border border-ed-gray-light"
+                  >
+                    <i className="fas fa-minus"></i>
+                  </button>
+                  <input
+                    type="number"
+                    id="quantityInput"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    min="1"
+                    className="ed-input text-center w-full border-l-0 border-r-0 focus:outline-none"
+                  />
+                  <button
+                    onClick={incrementQuantity}
+                    type="button"
+                    className="bg-ed-gray-dark px-3 py-2 rounded-r border border-ed-gray-light"
+                  >
+                    <i className="fas fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+
+              {/* Add Button */}
+              <div className="md:w-auto self-end">
+                <button
+                  onClick={addCommodityClick}
+                  type="button"
+                  disabled={!isValidCommodity}
+                  className={`ed-button bg-ed-orange text-black px-4 py-2 rounded-lg w-full md:w-auto ${!isValidCommodity ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <i className="fas fa-plus mr-1"></i> Add
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Add Common Commodities */}
+          <div className="mb-4">
+            <p className="text-xs text-gray-400 mb-2">Common commodities:</p>
+            <div className="flex flex-wrap gap-2">
+              {COMMON_COMMODITIES.map(commodity => (
+                <button
+                  key={commodity}
+                  onClick={() => quickAddCommodity(commodity)}
+                  type="button"
+                  className="ed-button bg-ed-gray-light hover:bg-ed-orange hover:text-black text-sm px-2 py-1 rounded"
+                >
+                  {commodity}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Commodity List */}
+          <div className="bg-ed-gray-dark p-3 rounded-lg">
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="text-sm font-semibold">Commodities List</h4>
+              <div>
+                <button
+                  onClick={onSortList}
+                  type="button"
+                  className="text-sm text-gray-400 hover:text-ed-orange mr-2"
+                >
+                  <i className="fas fa-sort"></i> Sort
+                </button>
+                <button
+                  onClick={onClearAll}
+                  type="button"
+                  className={`text-sm text-gray-400 hover:text-ed-orange ${entries.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={entries.length === 0}
+                >
+                  <i className="fas fa-trash-alt"></i> Clear
+                </button>
+              </div>
+            </div>
+
+            {entries.length === 0 ? (
+              <div className="text-center py-4 text-gray-500">
+                <i className="fas fa-shopping-basket text-2xl mb-2"></i>
+                <p>No commodities added yet</p>
+              </div>
+            ) : (
+              <div className="max-h-60 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-xs text-gray-400 border-b border-ed-gray-light">
+                    <tr>
+                      <th className="py-2 text-left">Commodity</th>
+                      <th className="py-2 text-right">Quantity</th>
+                      <th className="py-2 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entries.map((entry, index) => (
+                      <tr key={index} className="border-b border-ed-gray-light last:border-b-0">
+                        <td className="py-2 text-left">{entry.commodity}</td>
+                        <td className="py-2 text-right">
+                          <input
+                            type="number"
+                            value={entry.quantity}
+                            onChange={(e) => onUpdateQuantity(index, Math.max(1, parseInt(e.target.value) || 1))}
+                            min="1"
+                            className="ed-input w-16 text-right py-0 px-1 text-sm focus:outline-none"
+                          />
+                        </td>
+                        <td className="py-2 text-right">
+                          <button 
+                            onClick={() => onRemoveCommodity(index)} 
+                            type="button" 
+                            className="text-gray-400 hover:text-red-500"
+                          >
+                            <i className="fas fa-times"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="mt-3 flex justify-between items-center">
+              <div className="text-sm">
+                <span className="text-gray-400">Total: </span>
+                <span className="font-semibold">{totalCommodityQuantity}</span>
+                <span className="text-gray-400"> tons</span>
+              </div>
+              <button
+                onClick={onSaveList}
+                type="button"
+                disabled={entries.length === 0}
+                className={`ed-button bg-ed-gray-light hover:bg-ed-gray text-sm px-3 py-1 rounded ${entries.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <i className="fas fa-save mr-1"></i> Save List
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Saved Lists Component
+    const SavedLists = ({ lists, onLoadList, onDeleteList }) => {
+      const calculateListTotal = (list) => {
+        return list.entries.reduce((total, entry) => total + entry.quantity, 0);
+      };
+
+      const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString();
+      };
+
+      return (
+        <div className="mb-4 bg-ed-gray p-4 rounded-lg">
+          <h3 className="text-ed-orange font-semibold mb-3">Saved Commodity Lists</h3>
+
+          {lists.length === 0 ? (
+            <div className="text-center py-4 text-gray-500">
+              <i className="fas fa-list-alt text-2xl mb-2"></i>
+              <p>No saved lists found</p>
+              <p className="text-xs mt-2">Save a list from the Manual Input section first</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              {lists.map((list, index) => (
+                <div 
+                  key={index}
+                  className="bg-ed-gray-dark p-3 rounded-lg border border-ed-gray-light hover:border-ed-orange"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium">{list.name}</h4>
+                    <div className="flex space-x-1">
+                      <button 
+                        onClick={() => onLoadList(index)} 
+                        type="button" 
+                        className="text-ed-orange hover:text-ed-orange-light"
+                      >
+                        <i className="fas fa-folder-open"></i>
+                      </button>
+                      <button 
+                        onClick={() => onDeleteList(index)} 
+                        type="button" 
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        <i className="fas fa-trash-alt"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {list.entries.length} commodities, {calculateListTotal(list)} tons
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Saved: {formatDate(list.dateCreated)}
+                  </div>
+                  {/* Preview of list contents */}
+                  <div className="mt-2 pt-2 border-t border-ed-gray text-xs">
+                    <div className="max-h-24 overflow-y-auto">
+                      {list.entries.slice(0, 5).map((entry, entryIndex) => (
+                        <div key={entryIndex} className="flex justify-between py-1">
+                          <span>{entry.commodity}</span>
+                          <span className="text-ed-orange">{entry.quantity} tons</span>
+                        </div>
+                      ))}
+                      {list.entries.length > 5 && (
+                        <div className="text-gray-500 italic text-center mt-1">
+                          ...and {list.entries.length - 5} more
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // Route Results Component
+    const RouteResults = ({
+      results,
+      completedRoutes,
+      collectedCommodities,
+      onMarkComplete,
+      onMarkIncomplete,
+      onResetProgress,
+      onToggleCommodity
+    }) => {
+      if (!results) return null;
+
+      const calculateTotalCollected = () => {
+        return Object.values(collectedCommodities).reduce((total, qty) => total + qty, 0);
+      };
+
+      const calculateTotalNeeded = () => {
+        if (!results || !results.originalChunks) return 0;
+        return results.originalChunks.reduce((total, chunk) => total + (parseInt(chunk.size) || 0), 0);
+      };
+
+      const getUniqueCommodities = () => {
+        if (!results || !results.originalChunks) return [];
+        const commodityMap = {};
+        results.originalChunks.forEach(chunk => {
+          if (!commodityMap[chunk.commodity]) {
+            commodityMap[chunk.commodity] = 0;
+          }
+          commodityMap[chunk.commodity] += parseInt(chunk.size) || 0;
+        });
+        return Object.keys(commodityMap).map(name => ({
+          name: name,
+          fullQuantity: commodityMap[name]
+        }));
+      };
+
+      const isCommodityCollected = (name, quantity) => {
+        return (collectedCommodities[name] || 0) >= quantity;
+      };
+
+      const getCommodityCollectedAmount = (name) => {
+        return collectedCommodities[name] || 0;
+      };
+
+      const parseCommodities = (route) => {
+        const commodities = [];
+        if (!route || !route.legs) return commodities;
+
+        route.legs.forEach(leg => {
+          if (leg.action === 'PICKUP_RATIO') {
+            const description = leg.commodity || "";
+            // Example format: "{Commodity1, Commodity2}"
+            if (description.startsWith('{') && description.endsWith('}')) {
+              const commList = description.substring(1, description.length - 1);
+              const commNames = commList.split(', ').map(item => item.trim());
+              commNames.forEach(name => {
+                const originalChunk = results.originalChunks.find(chunk => 
+                  chunk.commodity === name && chunk.bin === route.binNumber
+                );
+                if (originalChunk) {
+                  commodities.push({
+                    name: name,
+                    size: parseInt(originalChunk.size) || 0
+                  });
+                }
+              });
+            } else {
+              // Fallback if format is different
+              commodities.push({
+                name: leg.commodity,
+                size: leg.quantity || 0
+              });
+            }
+          }
+        });
+        return commodities;
+      };
+
+      const getRouteCommoditiesCount = (route) => {
+        const commodities = parseCommodities(route);
+        return commodities.length;
+      };
+
+      const getRouteCollectedCount = (route) => {
+        const commodities = parseCommodities(route);
+        return commodities.filter(c => isCommodityCollected(c.name, c.size)).length;
+      };
+
+      const isRouteCompleted = (routeNumber) => {
+        return completedRoutes.includes(routeNumber);
+      };
+
+      const getDistanceColor = (distance) => {
+        const range = results.maxRange || 200; // fallback
+        if (distance > range * 0.9) {
+          return 'text-red-500';
+        } else if (distance > range * 0.7) {
+          return 'text-yellow-500';
+        } else {
+          return 'text-green-500';
+        }
+      };
+
+      // Estimate rough travel time
+      const getEstimatedTime = (totalDistance) => {
+        const avgJumpDistance = 30; // average jump distance in ly
+        const jumps = Math.ceil(totalDistance / avgJumpDistance);
+        const jumpTime = jumps * 2; // minutes per jump
+        let stations = 0;
+        if (results && results.routes) {
+          results.routes.forEach(route => {
+            route.legs.forEach(leg => {
+              if (leg.action === 'PICKUP_RATIO') stations++;
+            });
+          });
+        }
+        const stationTime = stations * 5; // minutes
+        const totalMinutes = jumpTime + stationTime;
+        if (totalMinutes < 60) {
+          return `${totalMinutes} minutes`;
+        } else {
+          const hours = Math.floor(totalMinutes / 60);
+          const minutes = totalMinutes % 60;
+          return `${hours}h ${minutes}m`;
+        }
+      };
+
+      const scrollToRoute = (routeId) => {
+        const routeElement = document.getElementById(`route-${routeId}`);
+        if (routeElement) {
+          routeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      };
+
+      const downloadRouteData = () => {
+        if (!results) return;
+        const dataStr = JSON.stringify(results, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+        const exportFileName = `ED_Route_${new Date().toISOString().slice(0,10)}.json`;
+
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileName);
+        linkElement.click();
+      };
+
+      return (
+        <div className="mb-8">
+          {/* Summary Card */}
+          <div className="ed-card bg-ed-gray-dark rounded-lg p-6 mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-ed-orange">
+                <i className="fas fa-route mr-2"></i>
+                Route Summary
+              </h2>
+              <div className="flex space-x-2">
+                <button
+                  onClick={onResetProgress}
+                  className="ed-button bg-amber-800 hover:bg-amber-700 text-white px-4 py-2 rounded-lg flex items-center"
+                  title="Reset completed routes"
+                >
+                  <i className="fas fa-redo-alt mr-2"></i>
+                  <span>Reset</span>
+                </button>
+                <button
+                  onClick={downloadRouteData}
+                  className="ed-button bg-ed-orange-dark hover:bg-ed-orange text-white px-4 py-2 rounded-lg flex items-center"
+                  title="Download route as JSON"
+                >
+                  <i className="fas fa-download mr-2"></i>
+                  <span>Export</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Overview Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-ed-gray p-4 rounded-lg border border-ed-gray-light">
+                <p className="text-gray-400 mb-1 text-xs uppercase tracking-wider">Total Distance</p>
+                <p className="text-2xl font-bold">
+                  {results.totalDistance.toFixed(2)} <span className="text-ed-orange">ly</span>
+                </p>
+              </div>
+              <div className="bg-ed-gray p-4 rounded-lg border border-ed-gray-light">
+                <p className="text-gray-400 mb-1 text-xs uppercase tracking-wider">Cargo Capacity</p>
+                <p className="text-2xl font-bold">
+                  {results.shipCapacity} <span className="text-ed-orange">tons</span>
+                </p>
+              </div>
+              <div className="bg-ed-gray p-4 rounded-lg border border-ed-gray-light">
+                <p className="text-gray-400 mb-1 text-xs uppercase tracking-wider">Total Routes</p>
+                <p className="text-2xl font-bold">{results.binsCount}</p>
+              </div>
+              <div className="bg-ed-gray p-4 rounded-lg border border-ed-gray-light">
+                <p className="text-gray-400 mb-1 text-xs uppercase tracking-wider">Est. Time</p>
+                <p className="text-2xl font-bold">{getEstimatedTime(results.totalDistance)}</p>
+              </div>
+            </div>
+
+            {/* Cargo Hold Summary */}
+            <div className="bg-ed-gray p-4 rounded-lg border border-ed-gray-light mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-bold text-ed-orange text-lg">
+                  <i className="fas fa-boxes mr-2"></i>
+                  Cargo Hold Status
+                </h3>
+                <div className="text-sm">
+                  <span className="text-ed-orange font-bold">{calculateTotalCollected()}</span>
+                  <span> / </span>
+                  <span>{calculateTotalNeeded()}</span>
+                  <span className="text-gray-400 ml-1">tons collected</span>
+                </div>
+              </div>
+              <div className="w-full bg-ed-gray-light rounded-full h-2 mb-4">
+                <div 
+                  className="bg-ed-orange h-2 rounded-full transition-all duration-500 ease-in-out"
+                  style={{width: `${(calculateTotalCollected() / calculateTotalNeeded() * 100) || 0}%`}}
+                ></div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {getUniqueCommodities().map((commodity, index) => (
+                  <div
+                    key={index}
+                    className={`bg-ed-gray-light rounded p-2 text-xs relative commodity-card cursor-pointer ${
+                      isCommodityCollected(commodity.name, commodity.fullQuantity) ? 'commodity-collected' : ''
+                    }`}
+                    onClick={() => onToggleCommodity(commodity.name, commodity.fullQuantity)}
+                  >
+                    <div className="font-medium text-sm mb-1 flex justify-between">
+                      <span>{commodity.name}</span>
+                      <span>
+                        <span className="text-ed-orange">{getCommodityCollectedAmount(commodity.name)}</span>
+                        <span>/</span>
+                        <span>{commodity.fullQuantity}</span>
+                      </span>
+                    </div>
+                    <div className="w-full bg-ed-gray rounded-full h-1">
+                      <div 
+                        className="bg-ed-orange h-1 rounded-full"
+                        style={{width: `${(getCommodityCollectedAmount(commodity.name) / commodity.fullQuantity * 100) || 0}%`}}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Home System Info */}
+            <div className="bg-ed-gray p-4 rounded-lg border border-ed-gray-light mb-6">
+              <p className="text-gray-400 text-xs uppercase tracking-wider mb-2">Home System</p>
+              {results.homeSystem ? (
+                <p className="text-lg font-bold">{results.homeSystem.name}</p>
+              ) : (
+                <p className="text-lg font-bold">Custom Location</p>
+              )}
+            </div>
+
+            {/* Progress Tracking */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-bold text-ed-orange">
+                  <i className="fas fa-tasks mr-2"></i>
+                  Mission Progress
+                </h3>
+                <span className="text-sm">
+                  <span className="text-ed-orange font-bold">{completedRoutes.length}</span>
+                  <span> of </span>
+                  <span>{results.routes.length}</span>
+                  <span className="text-gray-400 ml-1">routes completed</span>
+                </span>
+              </div>
+              <div className="w-full bg-ed-gray-light rounded-full h-4 mb-4">
+                <div 
+                  className="bg-ed-orange h-4 rounded-full transition-all duration-500 ease-in-out"
+                  style={{width: `${(completedRoutes.length / results.routes.length * 100) || 0}%`}}
+                ></div>
+              </div>
+
+              {/* Route Navigation */}
+              <div className="flex flex-wrap gap-2 mb-2">
+                {results.routes.map((route, index) => (
+                  <button 
+                    key={index}
+                    onClick={() => scrollToRoute(route.binNumber)}
+                    className={`ed-button px-3 py-1 rounded-md text-sm ${
+                      isRouteCompleted(route.binNumber)
+                        ? 'bg-ed-orange text-black font-bold'
+                        : 'bg-ed-gray-light text-ed-text'
+                    }`}
+                  >
+                    {route.binNumber}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Route Cards */}
+          {results.routes.map((route, routeIndex) => (
+            <div 
+              key={routeIndex}
+              id={`route-${route.binNumber}`}
+              className={`ed-card bg-ed-gray-dark rounded-lg p-6 mb-6 ${isRouteCompleted(route.binNumber) ? 'route-completed' : ''}`}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-ed-orange">
+                  <i className="fas fa-map-signs mr-2"></i>
+                  Route #{route.binNumber}
+                </h3>
+                <div className="flex items-center">
+                  <div className="bg-ed-gray-light px-3 py-1 rounded-md text-sm mr-3 flex items-center">
+                    <i className="fas fa-route mr-1 text-ed-orange"></i>
+                    <span>{route.totalDistance.toFixed(2)} ly</span>
+                  </div>
+                  <div className="bg-ed-gray-light px-3 py-1 rounded-md text-sm flex items-center">
+                    <i className="fas fa-project-diagram mr-1 text-ed-orange"></i>
+                    <span>{Math.ceil(route.totalDistance / 30)} jumps</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Route Progress Bar */}
+              <div className="w-full bg-ed-gray-light rounded-full h-1 mb-4">
+                <div 
+                  className="bg-ed-orange h-1 rounded-full"
+                  style={{width: `${(routeIndex / results.routes.length) * 100}%`}}
+                ></div>
+              </div>
+
+              {/* Commodities for this route */}
+              <div className="bg-ed-gray rounded-lg p-4 mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-semibold text-ed-orange">
+                    <i className="fas fa-cube mr-1"></i>
+                    Cargo for this trip:
+                  </h4>
+                  <span className="text-sm text-gray-400">
+                    <span>{getRouteCollectedCount(route)}</span> of <span>{getRouteCommoditiesCount(route)}</span> collected
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {parseCommodities(route).map((chunk, idx) => (
+                    <div 
+                      key={idx}
+                      className={`bg-ed-gray-dark border border-ed-gray-light hover:border-ed-orange relative
+                        px-3 py-2 rounded-md text-sm flex justify-between items-center cursor-pointer ${
+                          isCommodityCollected(chunk.name, chunk.size) ? 'bg-opacity-60' : ''
+                        }`}
+                      onClick={() => onToggleCommodity(chunk.name, chunk.size)}
+                    >
+                      <div className="flex items-center">
+                        <i className={`fas fa-box mr-2 ${
+                          isCommodityCollected(chunk.name, chunk.size)
+                            ? 'text-gray-500'
+                            : 'text-ed-orange'
+                        }`}></i>
+                        <span>{chunk.name}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className={`bg-ed-gray px-2 py-1 rounded-full text-xs font-bold ${
+                          isCommodityCollected(chunk.name, chunk.size) ? 'text-gray-500' : 'text-ed-orange'
+                        }`}>
+                          {chunk.size} tons
+                        </span>
+                        {isCommodityCollected(chunk.name, chunk.size) && (
+                          <i className="fas fa-check-circle text-ed-orange ml-2"></i>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Complete Button */}
+              <div className="mb-4 flex justify-end">
+                {!isRouteCompleted(route.binNumber) ? (
+                  <button
+                    onClick={() => onMarkComplete(route.binNumber)}
+                    className="ed-button bg-ed-orange hover:bg-ed-orange-light text-black px-4 py-2 rounded-lg flex items-center"
+                  >
+                    <i className="fas fa-check-circle mr-2"></i>
+                    <span>Mark as Complete</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onMarkIncomplete(route.binNumber)}
+                    className="ed-button bg-ed-gray-light hover:bg-ed-gray text-white px-4 py-2 rounded-lg flex items-center"
+                  >
+                    <i className="fas fa-undo mr-2"></i>
+                    <span>Mark as Incomplete</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Route Steps */}
+              <div className="space-y-4">
+                {route.legs.map((leg, legIndex) => (
+                  <div 
+                    key={legIndex}
+                    className={`${
+                      leg.action === 'PICKUP_RATIO' 
+                        ? 'border-l-4 border-ed-orange pl-4' 
+                        : leg.action === 'RETURN' 
+                          ? 'border-l-4 border-green-600 pl-4' 
+                          : ''
+                    }`}
+                  >
+                    {/* Pickup */}
+                    {leg.action === 'PICKUP_RATIO' && (
+                      <div className="flex items-start">
+                        <div className="bg-ed-orange-dark text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0 mt-1">
+                          <i className="fas fa-shopping-cart"></i>
+                        </div>
+                        <div className="flex-grow">
+                          <div className="flex justify-between">
+                            <div className="text-lg font-semibold">
+                              <span>{leg.systemName}</span>
+                              <span className="text-ed-orange"> / </span>
+                              <span>{leg.stationName}</span>
+                            </div>
+                            <div className={`text-sm font-bold ${getDistanceColor(leg.distance)}`}>
+                              <i className="fas fa-route mr-1"></i>
+                              <span>{leg.distance} ly</span>
+                            </div>
+                          </div>
+                          <div className="mt-2 bg-ed-gray p-3 rounded">
+                            <div className="flex flex-col space-y-2">
+                              {(() => {
+                                const description = leg.commodity || "";
+                                if (description.startsWith('{') && description.endsWith('}')) {
+                                  const commList = description.substring(1, description.length - 1);
+                                  const commNames = commList.split(', ').map(item => item.trim());
+                                  return commNames.map((commodity, cIndex) => {
+                                    const sizeFromChunks =
+                                      (results.originalChunks.find(c =>
+                                        c.commodity === commodity && c.bin === route.binNumber
+                                      )?.size) || 0;
+                                    return (
+                                      <div key={cIndex} className="flex justify-between items-center border-b border-ed-gray-light last:border-b-0 pb-1">
+                                        <div className="text-sm text-ed-orange flex items-center">
+                                          <i className="fas fa-cubes mr-2"></i>
+                                          <span>{commodity}</span>
+                                        </div>
+                                        <div className="text-xs text-gray-400">
+                                          {`${sizeFromChunks} tons`}
+                                        </div>
+                                      </div>
+                                    );
+                                  });
+                                } else {
+                                  // Fallback if not recognized
+                                  return (
+                                    <div className="flex justify-between items-center">
+                                      <div className="text-sm text-ed-orange flex items-center">
+                                        <i className="fas fa-cubes mr-2"></i>
+                                        <span>{description}</span>
+                                      </div>
+                                      <div className="text-xs text-gray-400">{leg.quantity} tons</div>
+                                    </div>
+                                  );
+                                }
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* No Station Found */}
+                    {leg.action === 'NO_STATION_FOUND' && (
+                      <div className="flex items-start">
+                        <div className="bg-red-800 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0 mt-1">
+                          <i className="fas fa-times"></i>
+                        </div>
+                        <div>
+                          <div className="text-lg font-semibold text-red-400">No station found!</div>
+                          <div className="text-gray-400">For commodity: {leg.commodity}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            <i className="fas fa-exclamation-triangle mr-1"></i>
+                            <span>This commodity may be unavailable within your max jump range</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Return Home */}
+                    {leg.action === 'RETURN' && (
+                      <div className="flex items-start">
+                        <div className="bg-green-700 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0 mt-1">
+                          <i className="fas fa-home"></i>
+                        </div>
+                        <div className="flex-grow">
+                          <div className="flex justify-between">
+                            <div className="text-lg font-semibold text-green-400">Return to Home</div>
+                            <div className={`text-sm font-bold ${getDistanceColor(leg.distance)}`}>
+                              <i className="fas fa-route mr-1"></i>
+                              <span>{leg.distance} ly</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom Navigation */}
+              <div className="flex justify-between items-center mt-6 pt-4 border-t border-ed-gray-light">
+                <div>
+                  {routeIndex > 0 && (
+                    <button 
+                      onClick={() => scrollToRoute(results.routes[routeIndex - 1].binNumber)}
+                      className="ed-button px-4 py-1 rounded-md bg-ed-gray text-ed-text hover:bg-ed-gray-light flex items-center"
+                    >
+                      <i className="fas fa-arrow-left mr-1"></i>
+                      <span>Previous Route</span>
+                    </button>
+                  )}
+                </div>
+                <div>
+                  {routeIndex < results.routes.length - 1 && (
+                    <button 
+                      onClick={() => scrollToRoute(results.routes[routeIndex + 1].binNumber)}
+                      className="ed-button px-4 py-1 rounded-md bg-ed-gray text-ed-text hover:bg-ed-gray-light flex items-center"
+                    >
+                      <span>Next Route</span>
+                      <i className="fas fa-arrow-right ml-1"></i>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    };
+
+    // Main App Component
+    const App = () => {
+      const [formData, setFormData] = useState({
+        cargoCapacity: 704,
+        maxRange: 166.0,
+        homeX: 0,
+        homeY: 0,
+        homeZ: 0,
+        skipCarriers: true,
+        largePadOnly: true,
+        useCoordinates: false,
+        homeSystem: ''
+      });
+      const [selectedSystem, setSelectedSystem] = useState(null);
+      const [fileName, setFileName] = useState('');
+      const [fileData, setFileData] = useState(null);
+      const [results, setResults] = useState(null);
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState(null);
+      const [formValidated, setFormValidated] = useState(false);
+      const [submitAttempts, setSubmitAttempts] = useState(0);
+      const [completedRoutes, setCompletedRoutes] = useState([]);
+      const [collectedCommodities, setCollectedCommodities] = useState({});
+      const [showSettings, setShowSettings] = useState(false);
+      const [debug, setDebug] = useState(false);
+
+      const [notification, setNotification] = useState({
+        message: '',
+        type: 'success',
+        visible: false
+      });
+
+      // Input method control
+      const [inputMethod, setInputMethod] = useState('manual');
+
+      // Manual commodity input
+      const [manualInput, setManualInput] = useState({
+        entries: []
+      });
+
+      // Saved lists
+      const [savedLists, setSavedLists] = useState([]);
+
+      // Save list modal
+      const [showSaveListModal, setShowSaveListModal] = useState(false);
+
+      // Load saved data on mount
+      useEffect(() => {
+        loadSavedData();
+        // Close modals on Esc
+        const handleKeyDown = (e) => {
+          if (e.key === 'Escape') {
+            setShowSettings(false);
+            setShowSaveListModal(false);
+          }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+      }, []);
+
+      // Show notification
+      const showNotification = (message, type = 'success') => {
+        setNotification({ message, type, visible: true });
+        setTimeout(() => {
+          setNotification(prev => ({ ...prev, visible: false }));
+        }, 3000);
+      };
+
+      // Load saved data from localStorage
+      const loadSavedData = () => {
+        // completed routes
+        const savedRoutes = localStorage.getItem('completedRoutes');
+        if (savedRoutes) {
+          try {
+            setCompletedRoutes(JSON.parse(savedRoutes));
+          } catch (e) {
+            console.error("Error loading saved routes:", e);
+          }
+        }
+
+        // collected commodities
+        const savedCommodities = localStorage.getItem('collectedCommodities');
+        if (savedCommodities) {
+          try {
+            setCollectedCommodities(JSON.parse(savedCommodities));
+          } catch (e) {
+            console.error("Error loading saved commodities:", e);
+          }
+        }
+
+        // debug setting
+        const debugSetting = localStorage.getItem('debug');
+        if (debugSetting !== null) {
+          setDebug(debugSetting === 'true');
+        }
+
+        // commodity lists
+        const savedCommodityLists = localStorage.getItem('savedCommodityLists');
+        if (savedCommodityLists) {
+          try {
+            setSavedLists(JSON.parse(savedCommodityLists));
+          } catch (e) {
+            console.error("Error loading saved commodity lists:", e);
+          }
+        }
+      };
+
+      // Save settings
+      const saveSettings = (settings) => {
+        setDebug(settings.debug);
+        localStorage.setItem('debug', settings.debug);
+        setShowSettings(false);
+        showNotification('Settings saved successfully!');
+      };
+
+      // Clear all stored data
+      const clearAllStoredData = () => {
+        if (confirm("Are you sure you want to clear all saved data? This will reset your route completion status and collected commodities.")) {
+          localStorage.removeItem('completedRoutes');
+          localStorage.removeItem('collectedCommodities');
+          localStorage.removeItem('savedCommodityLists');
+          setCompletedRoutes([]);
+          setCollectedCommodities({});
+          setSavedLists([]);
+
+          showNotification('All saved data cleared!');
+        }
+      };
+
+      // Handle form field changes
+      const handleInputChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({
+          ...prev,
+          [name]: type === 'checkbox' ? checked : value
+        }));
+      };
+
+      // Handle system selection
+      const handleSelectSystem = (system) => {
+        setSelectedSystem(system);
+        setFormData(prev => ({ ...prev, homeSystem: system.name }));
+      };
+
+      // Handle file selection
+      const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          setFileName(file.name);
+          setFileData(file);
+        } else {
+          setFileName('');
+          setFileData(null);
+        }
+      };
+
+      // Commodity management
+      const addCommodity = (entry) => {
+        const existingIndex = manualInput.entries.findIndex(
+          item => item.commodity === entry.commodity
+        );
+        if (existingIndex >= 0) {
+          // Update existing
+          const updatedEntries = [...manualInput.entries];
+          updatedEntries[existingIndex].quantity += entry.quantity;
+          setManualInput({ ...manualInput, entries: updatedEntries });
+        } else {
+          setManualInput({ ...manualInput, entries: [...manualInput.entries, entry] });
+        }
+      };
+      const removeCommodity = (index) => {
+        const updatedEntries = [...manualInput.entries];
+        updatedEntries.splice(index, 1);
+        setManualInput({ ...manualInput, entries: updatedEntries });
+      };
+      const updateCommodityQuantity = (index, quantity) => {
+        const updatedEntries = [...manualInput.entries];
+        updatedEntries[index].quantity = quantity;
+        setManualInput({ ...manualInput, entries: updatedEntries });
+      };
+      const clearCommodities = () => {
+        if (confirm("Are you sure you want to clear all commodities?")) {
+          setManualInput({ ...manualInput, entries: [] });
+        }
+      };
+      const sortCommodities = () => {
+        const sortedEntries = [...manualInput.entries].sort((a, b) => 
+          a.commodity.localeCompare(b.commodity)
+        );
+        setManualInput({ ...manualInput, entries: sortedEntries });
+      };
+      const saveCurrentList = () => {
+        if (manualInput.entries.length === 0) return;
+        setShowSaveListModal(true);
+      };
+      const confirmSaveList = (listName) => {
+        const newList = {
+          name: listName,
+          entries: JSON.parse(JSON.stringify(manualInput.entries)),
+          dateCreated: new Date().toISOString()
+        };
+        const updatedLists = [...savedLists, newList];
+        setSavedLists(updatedLists);
+        localStorage.setItem('savedCommodityLists', JSON.stringify(updatedLists));
+        setShowSaveListModal(false);
+        showNotification('List saved successfully!');
+      };
+      const loadSavedList = (index) => {
+        if (index < 0 || index >= savedLists.length) return;
+        if (!confirm("Loading this list will replace your current entries. Continue?")) return;
+        setManualInput({ ...manualInput, entries: JSON.parse(JSON.stringify(savedLists[index].entries)) });
+        setInputMethod('manual');
+        showNotification('List loaded successfully!');
+      };
+      const deleteSavedList = (index) => {
+        if (index < 0 || index >= savedLists.length) return;
+        if (!confirm("Are you sure you want to delete this list?")) return;
+        const updatedLists = [...savedLists];
+        updatedLists.splice(index, 1);
+        setSavedLists(updatedLists);
+        localStorage.setItem('savedCommodityLists', JSON.stringify(updatedLists));
+        showNotification('List deleted!');
+      };
+
+      // For debugging - load sample data
+      const loadTestData = () => {
+        if (debug) {
+          const exampleData = {
+            "success": true,
+            "routes": [
+              {
+                "binNumber": 1,
+                "totalDistance": 15.56,
+                "legs": [
+                  {
+                    "startPos": {
+                      "x": 0,
+                      "y": 0,
+                      "z": 0
+                    },
+                    "endPos": {
+                      "x": 0,
+                      "y": 0,
+                      "z": 0
+                    },
+                    "systemName": "Sol",
+                    "stationName": "Galileo",
+                    "commodity": "{Steel}",
+                    "distance": 0,
+                    "action": "PICKUP_RATIO"
+                  },
+                  {
+                    "startPos": {
+                      "x": 0,
+                      "y": 0,
+                      "z": 0
+                    },
+                    "endPos": {
+                      "x": 3.875,
+                      "y": 6.46875,
+                      "z": -1.90625
+                    },
+                    "systemName": "Wolf 359",
+                    "stationName": "Lomas Orbiter",
+                    "commodity": "{Computer Components, Survival Equipment}",
+                    "distance": 7.78,
+                    "action": "PICKUP_RATIO"
+                  },
+                  {
+                    "startPos": {
+                      "x": 3.875,
+                      "y": 6.46875,
+                      "z": -1.90625
+                    },
+                    "endPos": {
+                      "x": 0,
+                      "y": 0,
+                      "z": 0
+                    },
+                    "commodity": "RETURN_HOME",
+                    "distance": 7.78,
+                    "action": "RETURN"
+                  }
+                ]
+              },
+              {
+                "binNumber": 2,
+                "totalDistance": 29.6,
+                "legs": [
+                  {
+                    "startPos": {
+                      "x": 0,
+                      "y": 0,
+                      "z": 0
+                    },
+                    "endPos": {
+                      "x": 0,
+                      "y": 0,
+                      "z": 0
+                    },
+                    "systemName": "Sol",
+                    "stationName": "Daedalus",
+                    "commodity": "{Aluminium}",
+                    "distance": 0,
+                    "action": "PICKUP_RATIO"
+                  },
+                  {
+                    "startPos": {
+                      "x": 0,
+                      "y": 0,
+                      "z": 0
+                    },
+                    "endPos": {
+                      "x": -11.21875,
+                      "y": -1.1875,
+                      "z": 1.40625
+                    },
+                    "systemName": "61 Cygni",
+                    "stationName": "Broglie Terminal",
+                    "commodity": "{Building Fabricators, Battle Weapons}",
+                    "distance": 11.37,
+                    "action": "PICKUP_RATIO"
+                  },
+                  {
+                    "startPos": {
+                      "x": -11.21875,
+                      "y": -1.1875,
+                      "z": 1.40625
+                    },
+                    "endPos": {
+                      "x": -12.625,
+                      "y": 0,
+                      "z": -3.40625
+                    },
+                    "systemName": "Kruger 60",
+                    "stationName": "Kepler Gateway",
+                    "commodity": "{Reactive Armour}",
+                    "distance": 5.15,
+                    "action": "PICKUP_RATIO"
+                  },
+                  {
+                    "startPos": {
+                      "x": -12.625,
+                      "y": 0,
+                      "z": -3.40625
+                    },
+                    "endPos": {
+                      "x": 0,
+                      "y": 0,
+                      "z": 0
+                    },
+                    "commodity": "RETURN_HOME",
+                    "distance": 13.08,
+                    "action": "RETURN"
+                  }
+                ]
+              }
+            ],
+            "totalDistance": 468.27,
+            "shipCapacity": 704,
+            "binsCount": 5,
+            "homeSystem": {
+              "name": "Sol",
+              "coords": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              }
+            },
+            "originalChunks": [
+              {
+                "commodity": "Building Fabricators",
+                "size": 125,
+                "bin": 2
+              },
+              {
+                "commodity": "Steel",
+                "size": 556,
+                "bin": 1
+              },
+              {
+                "commodity": "Computer Components",
+                "size": 83,
+                "bin": 1
+              },
+              {
+                "commodity": "Battle Weapons",
+                "size": 50,
+                "bin": 2
+              },
+              {
+                "commodity": "Reactive Armour",
+                "size": 48,
+                "bin": 2
+              },
+              {
+                "commodity": "Survival Equipment",
+                "size": 47,
+                "bin": 1
+              },
+              {
+                "commodity": "Aluminium",
+                "size": 475,
+                "bin": 2
+              }
+            ],
+            "optimization": {
+              "method": "economy-aware"
+            }
+          };
+
+          setResults(exampleData);
+          setTimeout(() => {
+            const resultsSection = document.querySelector('#results');
+            if (resultsSection) {
+              resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 100);
+        }
+      };
+
+      // Form submission
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSubmitAttempts(prev => prev + 1);
+
+        if (inputMethod === 'csv') {
+          if (!fileData) {
+            setError("Please select a CSV file to upload");
+            return;
+          }
+        } else if (inputMethod === 'manual' || inputMethod === 'load') {
+          if (manualInput.entries.length === 0) {
+            setError("Please add at least one commodity");
+            return;
+          }
+        }
+
+        setFormValidated(true);
+        setError(null);
+        setResults(null);
+        setLoading(true);
+
+        const formDataObj = new FormData();
+        formDataObj.append('cargoCapacity', formData.cargoCapacity);
+        formDataObj.append('maxRange', formData.maxRange);
+        formDataObj.append('skipCarriers', formData.skipCarriers);
+        formDataObj.append('largePadOnly', formData.largePadOnly);
+        formDataObj.append('useCoordinates', formData.useCoordinates);
+
+        if (formData.useCoordinates) {
+          formDataObj.append('homeX', formData.homeX);
+          formDataObj.append('homeY', formData.homeY);
+          formDataObj.append('homeZ', formData.homeZ);
+        } else {
+          formDataObj.append('homeSystem', selectedSystem ? selectedSystem.name : '');
+        }
+
+        // Build a CSV from manual input if needed
+        if (inputMethod === 'csv') {
+          // user-provided CSV
+          formDataObj.append('needsFile', fileData);
+        } else {
+          // manual or loaded
+          let csvContent = "Commodity,QuantityNeeded\n";
+          manualInput.entries.forEach(entry => {
+            csvContent += `${entry.commodity},${entry.quantity}\n`;
+          });
+          const blob = new Blob([csvContent], { type: 'text/csv' });
+          formDataObj.append('needsFile', new File([blob], 'manual_input.csv', { type: 'text/csv' }));
+        }
+
+        try {
+          // If you want to skip calling the real API in debug, set this to true:
+          if (debug && false) {
+            loadTestData();
+            setLoading(false);
+            return;
+          }
+
+          const response = await fetchWithTimeout(`${API_BASE_URL}/api/plan-route`, {
+            method: 'POST',
+            body: formDataObj
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || `API error: ${response.status} ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          setLoading(false);
+
+          if (data.success) {
+            setResults(data);
+
+            const validRouteNumbers = data.routes.map(route => route.binNumber);
+            setCompletedRoutes(prev =>
+              prev.filter(routeNum => validRouteNumbers.includes(routeNum))
+            );
+            localStorage.setItem('completedRoutes', JSON.stringify(
+              completedRoutes.filter(routeNum => validRouteNumbers.includes(routeNum))
+            ));
+
+            // Scroll to results
+            setTimeout(() => {
+              const resultsSection = document.querySelector('#results');
+              if (resultsSection) {
+                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }, 100);
+          } else {
+            setError(data.error || 'An unknown error occurred');
+          }
+        } catch (err) {
+          console.error("Error during fetch:", err);
+          setLoading(false);
+          setError(`Failed to communicate with server: ${err.message}`);
+        }
+      };
+
+      // Route completion
+      const markRouteComplete = (routeNumber) => {
+        if (!completedRoutes.includes(routeNumber)) {
+          const updatedRoutes = [...completedRoutes, routeNumber];
+          setCompletedRoutes(updatedRoutes);
+          localStorage.setItem('completedRoutes', JSON.stringify(updatedRoutes));
+
+          // If all routes done, confetti
+          if (results && updatedRoutes.length === results.routes.length) {
+            createConfetti();
+          }
+        }
+      };
+      const markRouteIncomplete = (routeNumber) => {
+        const updatedRoutes = completedRoutes.filter(num => num !== routeNumber);
+        setCompletedRoutes(updatedRoutes);
+        localStorage.setItem('completedRoutes', JSON.stringify(updatedRoutes));
+      };
+
+      // Reset progress
+      const resetProgress = () => {
+        if (confirm("Are you sure you want to reset your progress? This will mark all routes as incomplete.")) {
+          setCompletedRoutes([]);
+          setCollectedCommodities({});
+          localStorage.setItem('completedRoutes', JSON.stringify([]));
+          localStorage.setItem('collectedCommodities', JSON.stringify({}));
+        }
+      };
+
+      // Toggle commodity collection
+      const toggleCommodityCollected = (name, quantity) => {
+        const updatedCommodities = { ...collectedCommodities };
+        if ((updatedCommodities[name] || 0) >= quantity) {
+          updatedCommodities[name] = 0; // un-collect
+        } else {
+          updatedCommodities[name] = quantity;
+        }
+        setCollectedCommodities(updatedCommodities);
+        localStorage.setItem('collectedCommodities', JSON.stringify(updatedCommodities));
+
+        // Check if all commodities are collected
+        const isAllCollected = (
+          Object.keys(updatedCommodities).length > 0 &&
+          results?.originalChunks?.every(chunk =>
+            (updatedCommodities[chunk.commodity] || 0) >= chunk.size
+          )
+        );
+        if (isAllCollected) {
+          createConfetti();
+        }
+      };
+
+      // Confetti animation
+      const createConfetti = () => {
+        const confettiColors = ['#c06400', '#ff8c00', '#a04d00', '#ffffff', '#ffb347', '#ffd700'];
+        const confettiContainer = document.createElement('div');
+        confettiContainer.style.position = 'fixed';
+        confettiContainer.style.width = '100%';
+        confettiContainer.style.height = '100%';
+        confettiContainer.style.top = '0';
+        confettiContainer.style.left = '0';
+        confettiContainer.style.pointerEvents = 'none';
+        confettiContainer.style.zIndex = '9999';
+        document.body.appendChild(confettiContainer);
+
+        for (let i = 0; i < 150; i++) {
+          const confetti = document.createElement('div');
+          const startX = Math.random() * window.innerWidth;
+          const startY = -20;
+          const color = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+          const size = Math.random() * 10 + 5;
+          const rotation = Math.random() * 360;
+
+          confetti.style.position = 'absolute';
+          confetti.style.left = `${startX}px`;
+          confetti.style.top = `${startY}px`;
+          confetti.style.width = `${size}px`;
+          confetti.style.height = `${size}px`;
+          confetti.style.backgroundColor = color;
+          confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+          confetti.style.transform = `rotate(${rotation}deg)`;
+          confetti.style.animation = `confetti-fall ${3 + Math.random() * 3}s ease-in-out forwards`;
+
+          setTimeout(() => {
+            confettiContainer.appendChild(confetti);
+          }, i * 10);
+
+          setTimeout(() => {
+            if (confetti.parentNode === confettiContainer) {
+              confetti.remove();
+            }
+            if (i === 149) {
+              setTimeout(() => {
+                if (confettiContainer.parentNode === document.body) {
+                  confettiContainer.remove();
+                }
+              }, 3000);
+            }
+          }, 6000);
+        }
+      };
+
+      return (
+        <div className="container mx-auto px-4 py-6">
+          {/* Header */}
+          <header className="mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-center">
+              <div className="mb-4 md:mb-0">
+                <h1 className="text-3xl md:text-4xl font-bold text-ed-orange flex items-center">
+                  <i className="fas fa-space-shuttle mr-3 transform -rotate-45"></i>
+                  Elite Dangerous Construction Materials Plotter
+                </h1>
+              </div>
+              <div className="flex space-x-3">
+                <button 
+                  onClick={() => setShowSettings(true)} 
+                  className="ed-button bg-ed-gray-light px-3 py-1 rounded border-ed-orange-dark"
+                >
+                  <i className="fas fa-cog mr-1"></i> Settings
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Settings Modal */}
+          <SettingsModal 
+            isOpen={showSettings}
+            onClose={() => setShowSettings(false)}
+            settings={{ debug }}
+            onSave={saveSettings}
+            onClearData={clearAllStoredData}
+          />
+
+          {/* Save List Modal */}
+          <SaveListModal 
+            isOpen={showSaveListModal}
+            onClose={() => setShowSaveListModal(false)}
+            onSave={confirmSaveList}
+            defaultName={`Commodity List ${savedLists.length + 1}`}
+          />
+
+          {/* Notification */}
+          <Notification 
+            notification={notification} 
+            onClose={() => setNotification(prev => ({...prev, visible: false}))} 
+          />
+
+          {/* Form Section */}
+          <div className="ed-card bg-ed-gray-dark rounded-lg p-6 mb-8">
+            <form id="routeForm" className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>
+              <div>
+                <h2 className="text-xl font-semibold mb-4 text-ed-orange border-b border-ed-gray-light pb-2">
+                  <i className="fas fa-rocket mr-2"></i>
+                  Ship Configuration
+                </h2>
+
+                <div className="mb-4">
+                  <label htmlFor="cargoCapacity" className="block mb-2 font-medium">Cargo Capacity:</label>
+                  <input 
+                    type="number" 
+                    id="cargoCapacity" 
+                    name="cargoCapacity"
+                    value={formData.cargoCapacity}
+                    onChange={handleInputChange}
+                    className="ed-input w-full rounded px-3 py-2 focus:outline-none"
+                    min="1" 
+                    required 
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label htmlFor="maxRange" className="block mb-2 font-medium">Max Laden Range (search distance):</label>
+                  <input 
+                    type="number" 
+                    id="maxRange" 
+                    name="maxRange"
+                    value={formData.maxRange}
+                    onChange={handleInputChange}
+                    step="0.1"
+                    className="ed-input w-full rounded px-3 py-2 focus:outline-none"
+                    min="0.1" 
+                    required 
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <div className="flex items-center mb-2">
+                    <input 
+                      type="checkbox" 
+                      id="skipCarriers" 
+                      name="skipCarriers"
+                      checked={formData.skipCarriers}
+                      onChange={handleInputChange}
+                      className="mr-2" 
+                    />
+                    <label htmlFor="skipCarriers" className="font-medium">Skip Fleet Carriers</label>
+                  </div>
+                  <div className="flex items-center">
+                    <input 
+                      type="checkbox" 
+                      id="largePadOnly" 
+                      name="largePadOnly"
+                      checked={formData.largePadOnly}
+                      onChange={handleInputChange}
+                      className="mr-2" 
+                    />
+                    <label htmlFor="largePadOnly" className="font-medium">Large Landing Pad Only</label>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-semibold mb-4 text-ed-orange border-b border-ed-gray-light pb-2">
+                  <i className="fas fa-map-marker-alt mr-2"></i>
+                  Source System & Requirements
+                </h2>
+
+                <div className="mb-4">
+                  <div className="flex items-center mb-4">
+                    <input 
+                      type="checkbox" 
+                      id="useCoordinates"
+                      name="useCoordinates"
+                      checked={formData.useCoordinates}
+                      onChange={handleInputChange}
+                      className="mr-2" 
+                    />
+                    <label htmlFor="useCoordinates" className="font-medium">Use Custom Coordinates</label>
+                  </div>
+                </div>
+
+                {/* System Name Input */}
+                {!formData.useCoordinates && (
+                  <SystemSearch onSelectSystem={handleSelectSystem} initialSystem={selectedSystem} />
+                )}
+
+                {/* Manual Coordinates Input */}
+                {formData.useCoordinates && (
+                  <div className="mb-4 grid grid-cols-3 gap-3">
+                    <div>
+                      <label htmlFor="homeX" className="block mb-2 font-medium">Home X:</label>
+                      <input 
+                        type="number" 
+                        id="homeX" 
+                        name="homeX"
+                        value={formData.homeX}
+                        onChange={handleInputChange}
+                        step="any"
+                        className="ed-input w-full rounded px-3 py-2 focus:outline-none" 
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="homeY" className="block mb-2 font-medium">Home Y:</label>
+                      <input 
+                        type="number" 
+                        id="homeY" 
+                        name="homeY"
+                        value={formData.homeY}
+                        onChange={handleInputChange}
+                        step="any"
+                        className="ed-input w-full rounded px-3 py-2 focus:outline-none" 
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="homeZ" className="block mb-2 font-medium">Home Z:</label>
+                      <input 
+                        type="number" 
+                        id="homeZ" 
+                        name="homeZ"
+                        value={formData.homeZ}
+                        onChange={handleInputChange}
+                        step="any"
+                        className="ed-input w-full rounded px-3 py-2 focus:outline-none" 
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Input Method Selection */}
+                <div className="mb-4">
+                  <label className="block mb-1 text-sm">Input Method:</label>
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="flex items-center">
+                      <input 
+                        type="radio" 
+                        id="csvMethod" 
+                        name="inputMethod"
+                        value="csv"
+                        checked={inputMethod === 'csv'}
+                        onChange={() => setInputMethod('csv')}
+                        className="mr-2" 
+                      />
+                      <label htmlFor="csvMethod" className="font-medium">CSV Upload</label>
+                    </div>
+                    <div className="flex items-center">
+                      <input 
+                        type="radio" 
+                        id="manualMethod" 
+                        name="inputMethod"
+                        value="manual"
+                        checked={inputMethod === 'manual'}
+                        onChange={() => setInputMethod('manual')}
+                        className="mr-2" 
+                      />
+                      <label htmlFor="manualMethod" className="font-medium">Manual Input</label>
+                    </div>
+                    <div className="flex items-center">
+                      <input 
+                        type="radio" 
+                        id="loadMethod" 
+                        name="inputMethod"
+                        value="load"
+                        checked={inputMethod === 'load'}
+                        onChange={() => setInputMethod('load')}
+                        className="mr-2" 
+                      />
+                      <label htmlFor="loadMethod" className="font-medium">Load Saved</label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CSV Upload Section */}
+                {inputMethod === 'csv' && (
+                  <div className="mb-4">
+                    <label htmlFor="needsFile" className="block mb-2 font-medium">Upload Needs CSV:</label>
+                    <div className="relative">
+                      <input 
+                        type="file" 
+                        id="needsFile" 
+                        onChange={handleFileChange}
+                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                        accept=".csv" 
+                      />
+                      <div className="ed-input rounded px-3 py-2 flex items-center justify-between">
+                        <span>{fileName ? fileName : 'Choose a CSV file...'}</span>
+                        <button type="button" className="ed-button bg-ed-orange text-black rounded px-3 py-1 ml-2">
+                          Browse
+                        </button>
+                      </div>
+                    </div>
+                    {fileName && (
+                      <div className="mt-2 flex items-center">
+                        <i className="fas fa-check-circle text-ed-orange mr-2"></i>
+                        <span className="text-ed-orange text-sm">File selected</span>
+                      </div>
+                    )}
+                    <p className="text-sm text-gray-400 mt-1">Format: CSV with 'Commodity' and 'QuantityNeeded' columns</p>
+                  </div>
+                )}
+
+                {/* Manual Input Method Section */}
+                {inputMethod === 'manual' && (
+                  <CommodityBuilder 
+                    entries={manualInput.entries}
+                    onAddCommodity={addCommodity}
+                    onRemoveCommodity={removeCommodity}
+                    onUpdateQuantity={updateCommodityQuantity}
+                    onClearAll={clearCommodities}
+                    onSaveList={saveCurrentList}
+                    onSortList={sortCommodities}
+                  />
+                )}
+
+                {/* Load Saved Lists Section */}
+                {inputMethod === 'load' && (
+                  <SavedLists 
+                    lists={savedLists}
+                    onLoadList={loadSavedList}
+                    onDeleteList={deleteSavedList}
+                  />
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <div className="md:col-span-2 flex justify-center">
+                <button 
+                  type="submit"
+                  className={`ed-button bg-ed-orange hover:bg-ed-orange-light text-black font-bold py-3 px-10 rounded-lg focus:outline-none transition duration-200 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <span className="inline-block mr-2"><i className="fas fa-spinner fa-spin"></i></span>
+                      <span>Calculating Route...</span>
+                    </>
+                  ) : (
+                    <span>Calculate Route</span>
+                  )}
+                </button>
+              </div>
+            </form>
+
+            {/* Debug Section */}
+            {debug && (
+              <div className="mt-4 border-t border-ed-gray-light pt-4 text-xs text-gray-400">
+                <p>Debug Info:</p>
+                <p>Form validated: {formValidated.toString()}</p>
+                <p>File selected: {fileName}</p>
+                <p>Selected system: {selectedSystem ? selectedSystem.name : 'None'}</p>
+                <p>Submission attempt: {submitAttempts}</p>
+                <p>Collected commodities: {Object.keys(collectedCommodities).length}</p>
+                <p>Total cargo collected: {Object.values(collectedCommodities).reduce((t, q) => t + q, 0)}</p>
+                <p>Input method: {inputMethod}</p>
+                <p>Manual entries: {manualInput.entries.length}</p>
+                <p>showSaveListModal: {showSaveListModal.toString()}</p>
+                <button 
+                  onClick={loadTestData} 
+                  className="ed-button bg-amber-800 hover:bg-amber-700 text-white px-2 py-1 rounded-sm text-xs mt-2"
+                >
+                  Load Test Data
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-900 text-white p-4 rounded-lg mb-8 ed-card">
+              <div className="flex items-center">
+                <i className="fas fa-exclamation-triangle mr-3"></i>
+                <span>{error}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Results Section */}
+          <div id="results">
+            {results && (
+              <RouteResults 
+                results={results}
+                completedRoutes={completedRoutes}
+                collectedCommodities={collectedCommodities}
+                onMarkComplete={markRouteComplete}
+                onMarkIncomplete={markRouteIncomplete}
+                onResetProgress={resetProgress}
+                onToggleCommodity={toggleCommodityCollected}
+              />
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // Render the App
+    const rootElement = document.getElementById('root');
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<App />);
+  </script>
+</body>
+</html>

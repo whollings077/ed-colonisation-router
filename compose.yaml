@@ -1,0 +1,20 @@
+
+services:
+  ed-trade-planner:
+    build: .
+    container_name: ed-trade-planner
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_CONFIG_LOCATION=file:/app/config/application.yml,file:/app/config/tradeplanner.yml
+      - JAVA_OPTS=-XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:MaxGCPauseMillis=200
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+x-environment:
+  &env
+  DOCKER_BUILDKIT: 1

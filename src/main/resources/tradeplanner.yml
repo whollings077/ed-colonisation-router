@@ -1,0 +1,17 @@
+tradeplanner:
+  # Data file paths
+  systems-json-path: even_smaller_stations.json
+  commodity-data-path: commodity_data.txt
+  
+  # Default algorithm parameters
+  skip-carriers-default: true
+  large-pad-only-default: true
+  default-cargo-capacity: 704
+  default-max-range: 166.0
+  max-results-limit: 10
+  
+  # File handling
+  allowed-extensions:
+    - csv
+  temp-file-prefix: ed-trade-planner-
+  temp-file-suffix: .tmp
